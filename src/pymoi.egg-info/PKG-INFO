@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: pymoi
+Version: 0.1a0
+Summary: A library for investigating sample heterozygosity.
+Home-page: https://github.com/ArthurVM/PyMOI
+Author: Arthur V. Morris
+Author-email: arthurvmorris@gmail.com
+License: MIT
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: Unix
+Classifier: Operating System :: POSIX
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Utilities

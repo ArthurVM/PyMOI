@@ -38,6 +38,6 @@ setup(
     'scipy==1.7.1',
     'scikit-learn==0.24.2',
     'matplotlib==3.7.1',
-    'seaborn==0.11.2'
+    'seaborn==0.13.0'
     ]
 )

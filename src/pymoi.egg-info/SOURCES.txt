@@ -1,0 +1,15 @@
+README
+setup.py
+src/pymoi/__init__.py
+src/pymoi/_version.py
+src/pymoi/finite_mixture_model.py
+src/pymoi/moi.py
+src/pymoi/moi_old.py
+src/pymoi/mutation.py
+src/pymoi/parse.py
+src/pymoi/simdist.py
+src/pymoi.egg-info/PKG-INFO
+src/pymoi.egg-info/SOURCES.txt
+src/pymoi.egg-info/dependency_links.txt
+src/pymoi.egg-info/requires.txt
+src/pymoi.egg-info/top_level.txt
