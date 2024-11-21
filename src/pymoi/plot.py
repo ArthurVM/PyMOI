@@ -4,8 +4,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from collections import defaultdict, namedtuple
 
-from .mutation import Mutation
-
 GMM = namedtuple("GMM", ["model", "cluster_assignments", "score", "k", "prob"])
 
 
@@ -133,18 +131,20 @@ def finite_mixture_model(   baf_matrix : pd.DataFrame,
 
 
 def plot_baf(   baf_matrix : pd.DataFrame,
+                sample_id : str,
                 gmm : GMM=None,
                 plot_ref : bool=False   ) -> None:
     """ Plots the B-allele frequency with or without clustering data and responsibilities
     """
 
     if gmm == None:
-        _plot_non_clustered(baf_matrix, plot_ref)
+        _plot_non_clustered(baf_matrix, sample_id, plot_ref)
     else:
-        _plot_clustered(baf_matrix, gmm, plot_ref)
+        _plot_clustered(baf_matrix, sample_id, gmm, plot_ref)
 
 
 def _plot_non_clustered(    baf_matrix : pd.DataFrame,
+                            sample_id : str,
                             plot_ref : bool=False   ) -> None:
     """ Make a BAF plot without cluster designations
     """
@@ -181,6 +181,8 @@ def _plot_non_clustered(    baf_matrix : pd.DataFrame,
     af_jp.ax_joint.set_xticks(list(chrom_positions.values()), list(chrom_positions.keys()), rotation=90, ha='center')
     plt.subplots_adjust(bottom=0.15)
     af_jp.ax_marg_x.set_xlim(-0.1, len(chrom_positions)-0.5)
+    af_jp.ax_joint.set_ylim([0, 1])
+
     af_jp.fig.set_figwidth(12)
     af_jp.fig.set_figheight(8)
 
@@ -191,6 +193,7 @@ def _plot_non_clustered(    baf_matrix : pd.DataFrame,
 
 
 def _plot_clustered(    baf_matrix : pd.DataFrame,
+                        sample_id : str,
                         gmm : GMM,
                         plot_ref : bool=False   ) -> None:
     """ Make a BAF plot with cluster designations
@@ -226,13 +229,18 @@ def _plot_clustered(    baf_matrix : pd.DataFrame,
     af_jp.ax_joint.set_xticks(list(chrom_positions.values()), list(chrom_positions.keys()), rotation=90, ha='center')
     plt.subplots_adjust(bottom=0.15)
     af_jp.ax_marg_x.set_xlim(-0.1, len(chrom_positions)-0.5)
-    af_jp.fig.set_figwidth(12)
-    af_jp.fig.set_figheight(8)
+    af_jp.ax_joint.set_ylim([0, 1])
 
+    af_jp.figure.set_figwidth(12)
+    af_jp.figure.set_figheight(8)
+    
+    plt.title(sample_id)
     plt.xlabel('Chromosome')
     plt.ylabel('Allele Frequency')
 
     plt.tight_layout()
+
+    plt.savefig(f"{sample_id}_allelefreq.png")
 
 
 def _plot_cluster_fit( sil_scores : list,
@@ -303,107 +311,3 @@ def _responsibilities(  baf_matrix : pd.DataFrame,
     responsibilities = np.max(responsibilities, axis=1)
 
     return responsibilities
-
-
-def _make_base_matrix(lines : list) -> pd.DataFrame:
-    """ construct a base matrix to store positional data of form
-
-    chr    pos
-    chr#   100
-    chr#   200
-    ...    ...
-    """
-    pos_box = []
-    for l in lines:
-        pos_box.append({'chromosome' : l.chrom, 'position' : l.pos})
-
-    return pd.DataFrame.from_records(pos_box)
-
-
-def get_heterozygosity(lines : list) -> pd.DataFrame:
-    """ compute allelic heterozygosity at each locus for sample and population level
-    """
-    ## dataframe to store heterozygosity values
-    het_df = _make_base_matrix(lines)
-
-    ref_counts_pop = []
-    alt_counts_pop = []
-    total_depth_pop = []
-
-    for i, sample_id in enumerate(lines[0].samples):
-        ## get alternate allele counts and total depth (AD and DP fields)
-        ref_counts = np.array([i.samples[sample_id]['AD'][0] for i in lines])
-        alt_counts = np.array([i.samples[sample_id]['AD'][1] for i in lines])
-        total_depth = np.array([i.samples[sample_id]['DP'] for i in lines])
-
-        if i == 0:
-            ref_counts_pop = ref_counts
-            alt_counts_pop = alt_counts
-            total_depth_pop = total_depth
-        else:
-            ref_counts_pop += ref_counts
-            alt_counts_pop += alt_counts
-            total_depth_pop += total_depth
-
-        ## compute heterozygosity for each variant
-        ## ignore 0/n RunTime warnings for this block
-        with np.errstate(divide='ignore',invalid='ignore'):
-            raf = ref_counts / total_depth
-            aaf = alt_counts / total_depth
-
-        heterozygosity_values = 1 - (raf ** 2 + aaf ** 2)
-        het_df[sample_id] = heterozygosity_values
-
-    ## compute heterozygosity at each position across the entire population
-    ## ignore 0/n RunTime warnings for this block
-    with np.errstate(divide='ignore',invalid='ignore'):
-        raf_pop = ref_counts_pop / total_depth_pop
-        aaf_pop = alt_counts_pop / total_depth_pop
-
-    het_df["ref_pop_heterozygosity"] = raf_pop
-    het_df["alt_pop_heterozygosity"] = aaf_pop
-
-    return het_df
-
-
-def get_MAF(    lines : list,
-                sample_id : str ) -> np.array:
-    """ compute Minor Allele Frequency (MAF)
-    """
-    # for sample_id in self.lines[0].samples:
-
-    ## get alternate allele counts and total depth (AD and DP fields)
-    alt_counts = np.array([min(i.samples[sample_id]['AD']) for i in lines])
-    total_depth = np.array([i.samples[sample_id]['DP'] for i in lines])
-
-    ## compute MAF for each variant
-    mafs = np.array(alt_counts / total_depth)
-
-    return mafs
-
-
-def get_Fws(lines : list):
-    """ compute within-host diversity statistic (Fws)
-    """
-    het_df = get_heterozygosity(lines)
-
-    Hw = np.mean(het_df["alt_pop_heterozygosity"])
-    print(Hw, np.mean(het_df["ref_pop_heterozygosity"]))
-    for sample_id in lines[0].samples:
-        Hs = np.mean(het_df[sample_id])
-        fws = 1-(Hs/Hw)
-
-        print(sample_id, fws)
-
-    # # Create MAF bins, 0..0.05, 0.05..0.1,...,0.45..0.5
-    # maf_bins = np.digitize(get_MAF(vcf_file), np.linspace(0, 0.5, 11)) - 1
-    #
-    # mu_population_het = [np.mean(population_het[maf_bins == bin_id]) for bin_id in range(11)]
-    # mu_sample_het = sample_het.groupby(maf_bins, axis=1).mean()
-    #
-    # def linear_regression(x, y):
-    #     slope, intercept, _, _, _ = stats.linregress(x, y)
-    #     return 1 - slope
-    #
-    # fws = mu_sample_het.apply(lambda x: linear_regression(mu_population_het, x))
-    # return fws

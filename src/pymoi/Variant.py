@@ -1,10 +1,12 @@
-class Mutation(object):
-    """class for storing mutations defined in a vcf file"""
+class Variant(object):
+    """class for storing variants defined in a vcf file"""
+
 
     def __init__(self, ):
-        super(Mutation, self).__init__()
+        super(Variant, self).__init__()
 
-    def parse_line(self, line : str, sample_ids : list):
+
+    def parseLine(self, line : str, sample_ids : list):
         sline = line.strip("\n").split("\t")
         chrom, pos, id, ref, alt, qual, filter, info, format = sline[:9]
 
@@ -17,7 +19,7 @@ class Mutation(object):
         self.filter = filter
         self.info = info
         self.format = format
-        ## capture sample specific mutation profiles
+        ## capture sample specific variant profiles
         sample_allele_data = sline[9:]
         sample_data = zip(sample_ids, sample_allele_data)
 
@@ -36,8 +38,9 @@ class Mutation(object):
                         d = tmp_d[0]
                 else:
                     try:
-                        d = [int(tmp_d) for tmp_d in tmp_d]
-                    except:
+                        ## Attempt conversion to integer for each element, handling "."
+                        d = [int(tmp_d) if tmp_d != "." else None for tmp_d in tmp_d]
+                    except ValueError:
                         d = [tmp_d for tmp_d in tmp_d]
 
                 subdict[f] = d
