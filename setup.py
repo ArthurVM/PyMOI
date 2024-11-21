@@ -33,11 +33,11 @@ setup(
     ],
     install_requires=[
     'Biopython==1.79',
-    'numpy==1.20.3',
+    'numpy>=1.20.3',
     'pandas==1.5.3',
     'scipy==1.7.1',
     'scikit-learn==0.24.2',
-    'matplotlib==3.7.1',
+    'matplotlib>=3.7.1',
     'seaborn==0.13.0'
     ]
 )
